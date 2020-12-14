@@ -1,0 +1,58 @@
+        
+
+        <form id="item_update_form" method='post' class="form" role="form" action="{% url 'views:start_port' id %}">
+              <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">Set executable time</h4>
+              </div>
+
+              <div class="modal-body">
+
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div class="form-group">
+                    {% for field in form %}
+                        <div class="form-group">
+                            {% if field.errors %}
+                                <ul class="form-errors">
+                                {% for error in field.errors %}
+                                    <li><span class="fa fa-exclamation-triangle"></span> <strong>{{ error|escape }}</strong></li>
+                                {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {{ field.label_tag }} {{ field }} 
+                            {% if field.help_text %}<div class="form-helptext">{{ field.help_text }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+              </div>
+              <div class="modal-footer">
+                <input type="button" id="annulla" class="btn btn-default" data-dismiss="modal" value="Cancel" />
+                <input id = "submit" type="submit" class="btn btn-primary" value="Start" style="margin-bottom: 5px;" />
+              </div>
+              </div>
+        </form>
+        <script>
+                var form_options = {
+                    target: '#item_update_form',
+                    success: function() {  }
+                }
+                
+                $(function () {
+                  $("#datetimepicker").datetimepicker({format: 'Y-m-d H:i',});
+                });
+
+                $('#item_update_form').ajaxForm(form_options);
+                $("#annulla").click(function(){
+                    $('body').on('hidden.bs.modal', '.modal', function () {
+                        $(this).removeData('bs.modal');
+                    });
+                });
+
+                $("#submit").click(function(){
+                    var x = $('#id_ports').val();
+                    portsArray = x.replace(/[, -]+/g, " ").trim();
+                    portsArray = portsArray.replace(/(\r\n|\n|\r)/gm, " ");
+                    $('#id_ports').val(portsArray)
+                });
+
+        </script>
+

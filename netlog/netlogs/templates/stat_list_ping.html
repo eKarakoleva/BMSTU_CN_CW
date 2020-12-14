@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+	<nav aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item active" aria-current="page">My Hosts / {{name}} / Ping status</li>
+	</ol>
+	</nav>
+    <a href="{% url 'views:hosts_list' id %}" class="btn btn-info"><span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span> Go back</a>
+
+    <h3>{{name}} </h3>
+    <br>
+    <h4>Time period: </h4>
+    <div class="input-group">
+        <input type="text" id = "datetimepicker_start" class = "form-control" autocomplete="off" placeholder="Start"/>
+        <span class="input-group-addon">-</span>
+        <input type="text" id = "datetimepicker_end" class = "form-control" autocomplete="off" placeholder="End"/>
+    </div>
+    <label for="sel1"><h4>Sort by: </h4></label>
+
+      <select class="form-control" id="criretia">
+        <option>Start</option>
+        <option>End</option>
+        <option>Max ms</option>
+        <option>Min ms</option>
+        <option>Avg ms</option>
+        <option>Total packets</option>
+        <option>Lost packets</option>
+      </select>
+    <br>
+    <a href="#" id = "{{id}}" class="btn btn-info add mb-3 pull-right sort" role="button" style = "padding: 8px 50px;">Sort</a> <br><br><br>
+  <table class="table">
+  <thead>
+	<tr>
+	  <th scope="col">#</th>
+	  <th scope="col">Start</th>
+	  <th scope="col">End</th>
+	  <th scope="col">Max ms</th>
+	  <th scope="col">Min ms</th>
+      <th scope="col">Avg ms</th>
+      <th scope="col">Total <br> packets</th>
+      <th scope="col">Lost <br> packets</th>
+	</tr>
+  </thead>
+  <tbody>
+
+	{% for stat in stats %}
+	<tr>
+		<th scope="row"></th>
+	  	<td class = "stats" >{{stat.start_time}}</td>
+        <td class = "stats" >{{stat.stopped_time}}</td>
+        <td class = "stats max_ms" >{{stat.max_ms}}</td>
+        <td class = "stats min_ms" >{{stat.min_ms}}</td>
+        <td class = "stats avg_ms" >{{stat.avg_ms}}</td>
+        <td class = "stats transmited_pac" >{{stat.transmited_pac}}</td>
+        <td class = "stats lost_pac">{{stat.lost_pac}}</td>
+	  
+	</tr>				
+    {% empty %}
+    <tr>
+        <td class="bg-light text-center font-italic" colspan="5">You do not have any stats yet.</td>
+    </tr>
+    {% endfor %}
+        <tr>
+            <th scope="row"><b>Avg</b></th>
+            <td id = "star_time_avg" class = "stats_avg" ></td>
+            <td id = "stopped_time_avg" class = "stats_avg" ></td>
+            <td id = "max_ms_avg" class = "stats_avg" ></td>
+            <td id = "min_ms_avg" class = "stats_avg" ></td>
+            <td id = "avg_ms_avg" class = "stats_avg" ></td>
+            <td id = "transmited_pac_avg" class = "stats_avg" ></td>
+            <td id = "lost_pac_avg" class = "stats_avg"></td>
+      
+        </tr>   
+  </tbody>
+</table>
+  {% block javascript %}
+<script type="text/javascript">
+
+    $(function () {
+        $("#datetimepicker_start").datetimepicker({format: 'Y-m-d',});
+        $("#datetimepicker_end").datetimepicker({format: 'Y-m-d',});
+    });
+
+    function avg_stats() {
+        let sum = 0;
+        let numb = 0;
+        $('.max_ms').each(function(){
+            numb += 1;
+            sum += parseFloat($(this).text());                
+        });
+        $("#max_ms_avg").html(sum.toFixed(1) / numb);
+
+        sum = 0;
+        numb = 0;
+        $('.min_ms').each(function(){
+            numb += 1;
+            sum += parseFloat($(this).text());             
+        });
+        $("#min_ms_avg").html(sum.toFixed(1) / numb);
+
+        sum = 0;
+        numb = 0;
+        $('.avg_ms').each(function(){
+            numb += 1;
+            sum += parseFloat($(this).text()); 
+                           
+        });
+        $("#avg_ms_avg").html(sum.toFixed(1) / numb);
+
+        sum = 0;
+        numb = 0;
+        $('.transmited_pac').each(function(){
+            numb += 1;
+            sum += parseFloat($(this).text());               
+        });
+        $("#transmited_pac_avg").html(sum.toFixed(1) / numb);
+
+        sum = 0;
+        numb = 0;
+        $('.lost_pac').each(function(){
+            numb += 1;
+            sum += parseFloat($(this).text());              
+        });
+        $("#lost_pac_avg").html(sum.toFixed(1) / numb);
+    }
+
+
+    $('.sort').click(function (e) {
+        if (e.target) {
+            let id = $(this).attr('id')
+            let cr = $('#criretia').find(":selected").text()
+            let tstart = $('#datetimepicker_start').val()
+            let tend = $('#datetimepicker_end').val()
+            console.log(id)
+            $.ajax({
+                url: '{% url "views:sort_ping_stats" %}',
+                data:{"id_p" : id, 'criretia': cr, 'tstart': tstart, 'tend': tend},
+                dataType: 'json',
+                success: function (data) {
+                    $('tbody').empty();
+
+                    for (i = 0; i < data['stats'].length; i++) {
+                            date_s = new Date(data['stats'][i]['start_time']).toLocaleString("en-US", {timeZone: "Europe/Sofia"});
+                            date_e = new Date(data['stats'][i]['stopped_time']).toLocaleString("en-US", {timeZone: "Europe/Sofia"});
+                            $( "tbody" ).append("<tr><th scope='row'>"+i+"</th>\
+                                <td class = 'stats ' >" + date_s  + "</td>\
+                                <td class = 'stats' >" + date_e+"</td>\
+                                <td class = 'stats  max_ms' >" + data['stats'][i]['max_ms'] +"</td>\
+                                <td class = 'stats  min_ms' >" + data['stats'][i]['min_ms'] +"</td>\
+                                <td class = 'stats  avg_ms' >" + data['stats'][i]['avg_ms'] +"</td>\
+                                <td class = 'stats transmited_pac' >" + data['stats'][i]['transmited_pac'] +"</td>\
+                                <td class = 'stats lost_pac' >" + data['stats'][i]['lost_pac'] +"</td></tr>")
+                    }
+                        $( "tbody" ).append("<tr><th scope='row'><b>Avg</b></th>\
+                            <td id = 'star_time_avg' class = 'stats_avg' ></td>\
+                            <td id = 'stopped_time_avg' class = 'stats_avg' ></td>\
+                            <td id = 'max_ms_avg' class = 'stats_avg' ></td>\
+                            <td id = 'min_ms_avg' class = 'stats_avg' ></td>\
+                            <td id = 'avg_ms_avg' class = 'stats_avg' ></td>\
+                            <td id = 'transmited_pac_avg' class = 'stats_avg' ></td>\
+                            <td id = 'lost_pac_avg' class = 'stats_avg'></td></tr>"); 
+                        avg_stats();
+                }
+            });
+        }
+    });
+  
+    avg_stats();
+</script>
+{% endblock javascript %}
+ {% endblock %}

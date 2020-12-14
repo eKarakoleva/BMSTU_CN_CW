@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+	<nav aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item active" aria-current="page">My Hosts</li>
+	</ol>
+	</nav>
+	<a href="{% url 'views:hosts_list' user_id %}" class="btn btn-info"><span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span> Go back</a>
+	            <!-- Modal -->
+    <div class="modal fade" id="modal-activate" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+      <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+
+          </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="modal fade" id="modal-port" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+      <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+
+          </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+<table class = "table">
+  <a class="btn btn-success" onClick="getGeoinfo({{id}})">Host geoinfo</a>
+	{% if host.host.name %}
+		<h2>{{host.host.name}} </h2>
+	{% else %}
+		<h2>{{host}}</h2>
+	{% endif %}
+
+
+  <tr>
+    <th></th>
+    <td></td>
+    <td></td>
+    <td><b>Time start</b></td>
+    <td><b>Time end</b></td>
+    <td></td>
+	<td><b>Protocol</b></td>
+  </tr>
+
+
+  <tr>
+    <th>Ping:</th>
+    <td></td>
+	{% if host.host.is_ping == True %}
+		<td class="align-middle"><a style="padding: 6px 30px;"class="btn btn-success" onClick="stopPing({{id}})">Stop</a></td>
+	{% else %}
+		<td><a style="padding: 6px 30px;" class="btn btn-danger" name = "{{host.host_id}}" data-toggle="modal" href="{% url 'views:start_ping' id %}" data-target="#modal-activate" title="edit item" data-tooltip>Start</a></td>
+	{% endif %}
+	{% if host.host.is_ping == True %}
+		<td>{{host.start_time}}</td>
+		<td>{{host.end_time}}</td>
+	{% else %}
+		<td>Not started</td>
+		<td>Not started</td>
+	{% endif %}
+		<td class="align-middle"><a id = "{{host.host_id}}" class="btn btn-success test_ping" onClick="testPing({{id}})">Test ping</a></td>
+		<td></td>
+  	</tr>
+  	<tr>
+  	<th>Port:</th>
+  	<td><input class="form-control ports_input" type="text"  placeholder="Ports (ex: 80, 8080, 25, 21)"></td>
+	{% if host.host.is_port == True %}
+		<td class="align-middle"><a style="padding: 6px 30px;" class="btn btn-success" onClick="stopPort({{id}})">Stop</a></td>
+	{% else %}
+  		<td><a style="padding: 6px 30px;" class="btn btn-danger" name = "{{host.host_id}}" data-toggle="modal" href="{% url 'views:start_port' id %}" data-target="#modal-port" title="edit item" data-tooltip>Start</a></td>
+	{% endif %}
+	{% if host.host.is_port == True %}
+		<td>{{p_times.start_time}}</td>
+		<td>{{p_times.end_time}}</td>
+	{% else %}
+		<td>Not started</td>
+		<td>Not started</td>
+	{% endif %}
+  <td class="align-middle"><a id = "{{id}}" class="btn btn-success test_ports">Test port</a></td>
+  <td>
+      <select id = "protocol_port" class="form-control" id="sel1">
+      	<option>TCP/UDP</option>
+        <option>TCP</option>
+        <option>UDP</option>
+      </select>
+  </td>
+</tr>
+<tr>
+ <th>Monitored ports:</th>
+ <td></td>
+ {% if host.host.is_port == True %}
+ 	<td><h4 id = "monitored_ports">{{p_times.ports}} {{p_times.protocol}}</h4></td>
+ {% else %}
+ 	<td><h4>None</h4></td>
+ {% endif %}
+ <td></td>
+ <td></td>
+ <td></td>
+ <td>
+ 	    <select id = "state_choose" class="form-control" id="sel1">
+	      	<option>open</option>
+	        <option>filtered</option>
+	        <option>closed</option>
+	        <option>all</option>
+      	</select>
+ </td>
+</tr>
+</table>
+  <a class="btn btn-success pull-right" onClick="clearTable()">Clear test results</a>
+<br>
+  <h4 id = "geoinfo"></h4>
+  <h4 id = "test_area">
+
+  	<h4 id = "test_ping"></h4>
+  </h4>
+
+  {% block javascript %}
+<script type="text/javascript">
+
+    function stopPing(id) {
+      var action = confirm("Are you sure you want to stop pinging?");
+      if (action != false) {
+          $.ajax({
+              url: '{% url "views:stop_ping" %}',
+              data: {
+                  'id': id,
+              },
+              dataType: 'json',
+              success: function (data) {
+                location.reload()
+              }
+          });
+      }
+    }
+
+    function stopPort(id) {
+      var action = confirm("Are you sure you want to stop port monitor?");
+      if (action != false) {
+          $.ajax({
+              url: '{% url "views:stop_port" %}',
+              data: {
+                  'id': id,
+              },
+              dataType: 'json',
+              success: function (data) {
+                location.reload()
+              }
+          });
+      }
+    }
+
+    function testPing(id) {
+        $.ajax({
+           	url: '{% url "views:test_ping" %}',
+            data: {
+                'id': id,
+            },
+            dataType: 'json',
+            success: function (data) {
+            	lines = data['response'].split(/\r\n|\r|\n/g);
+              console.log(data['aa'])
+            	let arrayLength = lines.length;
+      				for (var i = 0; i < arrayLength; i++) {
+      					if(lines[i] != ""){
+      						$( "#test_area" ).append( "<p>"+lines[i]+"</p>" );
+      					}
+      				}
+            	$( "#delete-wait" ).remove();
+
+            }
+        });   	
+    }
+    
+    $('.test_ping').click(function (e) {
+	    if (e.target) {
+	        $( "#test_area" ).append( "<h3 id='delete-wait'>Please wait a few seconds: I am making 4 pings to your host </h3>" );
+	    }
+	});
+
+	$('.test_ports').click(function (e) {
+	    if (e.target) {
+	        let x = $('.ports_input').val();
+	        let id = $('.test_ports').attr('id');
+	        let protocol = $('#protocol_port').find(":selected").text();
+	        let states_pr = $('#state_choose').find(":selected").text();
+	        let portsArray = x.replace(/[, -]+/g, " ").trim();
+
+	        $.ajax({
+	            url: '{% url "views:scan_given_ports" %}',
+	            data:{"ports" : JSON.stringify(portsArray), "id" : id, 'protocol': protocol, 'state': states_pr},
+	            dataType: 'json',
+	            success: function (data) {
+
+	            	if ($('#result').length == 0) {
+	            		$( "#test_area" ).append('<table id= "result"style="width:100%"><tr><th>Host</th><th>Protocol</th><th>State</th><th>Service</th></tr></table> ')
+	            	}
+	            	for (i = 0; i < data['response'].length; i++) {
+  						$( "#result" ).append( "<tr><td>"+data['response'][i][1]+ " </td>" + "<td>"+data['response'][i][2]+ " </td>" + "<td>"+data['response'][i][3]+ " </td>" + "<td>" +data['response'][i][4]+ " </td></tr>");
+					}
+					$( "#result" ).append('<br>')
+	            }
+        	});
+	    }
+	});
+
+  function clearTable() {
+      $('#test_area').empty()
+      $("#geoinfo").empty()
+  }
+
+  function getGeoinfo(id) {
+    $("#geoinfo").empty()
+    $.ajax({
+      url: '{% url "views:get_host_geoinfo" %}',
+      data: {
+          'id': id,
+      },
+      dataType: 'json',
+        success: function (data) {
+            dictionary = data['response']
+            for (var key in dictionary) {
+              if (dictionary.hasOwnProperty(key)) {  
+                  $('#geoinfo').append('<p><b>' + key + '</b>: ' + dictionary[key] + '</p>')         
+              }
+            }
+            $('#geoinfo').append('<br>')
+        }
+    });     
+  }
+
+</script>
+{% endblock javascript %}
+ {% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+	<nav aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item active" aria-current="page">My Hosts / {{name}} / Port status</li>
+	</ol>
+	</nav>
+    <a href="{% url 'views:hosts_list' id %}" class="btn btn-info"><span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span> Go back</a>
+
+    <h3>{{name}} </h3>
+    <br>
+    <h4>Time period: </h4>
+    <div class="input-group">
+        <input type="text" id = "datetimepicker_start" class = "form-control" autocomplete="off" placeholder="Start"/>
+        <span class="input-group-addon">-</span>
+        <input type="text" id = "datetimepicker_end" class = "form-control" autocomplete="off" placeholder="End"/>
+    </div>
+    <label for="sel1"><h4>Sort by: </h4></label>
+
+      <select class="form-control" id="criretia">
+        <option>Start</option>
+        <option>End</option>
+      </select>
+    <br>
+    <a href="#" id = "{{id}}" class="btn btn-info add mb-3 pull-right sort" role="button" style = "padding: 8px 50px;">Sort</a> <br><br><br>
+  <table class="table">
+  <thead>
+	<tr>
+	  <th scope="col">#</th>
+	  <th scope="col">Start</th>
+	  <th scope="col">End</th>
+	  <th scope="col">Ports</th>
+	  <th scope="col">Protocols</th>
+      <th scope="col">Down ports</th>
+	</tr>
+  </thead>
+  <tbody>
+
+	{% for stat in stats %}
+	<tr>
+		<th scope="row"></th>
+	  	<td class = "stats" >{{stat.start_time}}</td>
+        <td class = "stats" >{{stat.stopped_time}}</td>
+        <td class = "stats" >{{stat.ports}}</td>
+        <td class = "stats" >{{stat.protocol}}</td>
+        <td class = "stats" >
+        {% for key,value in stat.results.items %}
+            {% if value %}
+                <h4>{{key}}: </h4>
+                {% for key_v,value_v in value.items %}
+                    <p><b>Port:</b> {{key_v}}, <b>Times</b>: {{value_v}}</p>
+                {% endfor %}
+            {% endif %}
+        {% empty %}
+            <p>No down</p>
+        {% endfor %}
+
+        </td> 
+	</tr>				
+    {% empty %}
+    <tr>
+        <td class="bg-light text-center font-italic" colspan="5">You do not have any stats yet.</td>
+    </tr>
+    {% endfor %}
+        <tr>
+            <th scope="row"><b>Avg</b></th>
+            <td id = "star_time_avg" class = "stats_avg" ></td>
+            <td id = "stopped_time_avg" class = "stats_avg" ></td>
+            <td id = "max_ms_avg" class = "stats_avg" ></td>
+            <td id = "min_ms_avg" class = "stats_avg" ></td>
+            <td id = "avg_ms_avg" class = "stats_avg" ></td>
+        </tr>   
+  </tbody>
+</table>
+  {% block javascript %}
+<script type="text/javascript">
+
+    $(function () {
+        $("#datetimepicker_start").datetimepicker({format: 'Y-m-d',});
+        $("#datetimepicker_end").datetimepicker({format: 'Y-m-d',});
+    });
+
+    function get_results(data, criretia) {
+        let dictionary = data['stats'][i]['results'][criretia]
+        let pp = ""
+        if (Object.keys(dictionary).length !== 0){
+            pp += "<h4>"+criretia+":</h4>"
+            for (var key in dictionary) {
+                if (dictionary.hasOwnProperty(key)) {           
+                    pp += "<p><b>Port: </b>" + key + "<b> Times: </b>" + dictionary[key] + "<p>"
+                }
+            }
+        }
+        return pp
+    }
+
+
+   $('.sort').click(function (e) {
+        if (e.target) {
+            let id = $(this).attr('id')
+            let cr = $('#criretia').find(":selected").text()
+            let tstart = $('#datetimepicker_start').val()
+            let tend = $('#datetimepicker_end').val()
+            console.log(id)
+            $.ajax({
+                url: '{% url "views:sort_port_stats" %}',
+                data:{"id_p" : id, 'criretia': cr, 'tstart': tstart, 'tend': tend},
+                dataType: 'json',
+                success: function (data) {
+
+
+                    $('tbody').empty();
+
+                    for (i = 0; i < data['stats'].length; i++) {
+                            let date_s = new Date(data['stats'][i]['start_time']).toLocaleString("en-US", {timeZone: "Europe/Sofia"});
+                            let date_e = new Date(data['stats'][i]['stopped_time']).toLocaleString("en-US", {timeZone: "Europe/Sofia"});
+                            let dictionary = data['stats'][i]['results']['tcp']
+                            let p1 = get_results(data, 'tcp')
+                            let p2 = get_results(data, 'udp')
+                            $( "tbody" ).append("<tr><th scope='row'>"+i+"</th>\
+                                <td class = 'stats ' >" + date_s  + "</td>\
+                                <td class = 'stats' >" + date_e+"</td>\
+                                <td class = 'stats' >" + data['stats'][i]['ports'] +"</td>\
+                                <td class = 'stats' >" + data['stats'][i]['protocol'] +"</td>\
+                                <td class = 'stats' >" + p1 + p2 +"</td></tr>")
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock javascript %}
+ {% endblock %}

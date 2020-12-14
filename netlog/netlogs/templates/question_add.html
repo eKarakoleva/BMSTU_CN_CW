@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block body_block %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'teachers:course_list' %}">My Courses</a></li>
+	  <!--<li class="breadcrumb-item active" aria-current="page">{{ course.name }}</li>-->
+      <li class="breadcrumb-item active" aria-current="page">Add a new question</li>
+    </ol>
+  </nav>
+  <h2 class="mb-3">Add a new question to the quiz {{ quiz.name }}</h2>
+  <p class="lead">Add additional question info</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <h4 class="mb-3">Avaliable points: {{free_points}}</h4>
+    <button type="submit" class="btn btn-success">Save</button>
+    <a  href="{% url 'teachers:questions_list' quiz_id %}" class="btn btn-outline-secondary" role="button">Nevermind</a>
+  </form>
+{% endblock %}

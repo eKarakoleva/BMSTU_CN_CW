@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% load crispy_forms_tags %}
+
+{% block body_block %}
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item active" aria-current="page">Add a new host</li>
+    </ol>
+  </nav>
+  <h2 class="mb-3">Add a new host</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form|crispy }}
+    <br>
+    <button type="submit" class="btn btn-success">Save</button>
+    <a  href="#" class="btn btn-outline-secondary" role="button">Nevermind</a>
+  </form>
+{% endblock %}

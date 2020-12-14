@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block body_block %}
+	<nav aria-label="breadcrumb">
+	<ol class="breadcrumb">
+		<li class="breadcrumb-item active" aria-current="page">My Hosts</li>
+	</ol>
+	</nav>
+	<a href="{% url 'views:add_host' %}" class="btn btn-primary add mb-3" role="button">Add Host</a> <br><br>
+	<a href="#" class="btn btn-info mb-3" role="button" onClick="checkExp()">Check expired</a> <br><br>
+
+
+	            <!-- Modal -->
+    <div class="modal fade" id="modal-activate" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+      <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+
+          </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+  <table class="table">
+  <thead>
+	<tr>
+	  <th scope="col">#</th>
+	  <th scope="col">Host</th>
+	  <th scope="col">Ping <br>monitor</th>
+	  <th scope="col">Port <br>monitor</th>
+	  <th scope="col">Operations</th>
+	</tr>
+  </thead>
+  <tbody>
+	{% for host in hosts %}
+	<tr>
+		<th scope="row"></th>
+	  	<td class = "hosts" id = "{{host.id}}">{{host.name}}</td>
+	  	{% if host.is_ping == True %}
+			<td class = "status monitored" id = "{{host.id}}"><span style = " color: green;   font-size: 25px;" class="glyphicon glyphicon-ok-circle"></span></td>
+	  	{% else %}
+			<td class = "status" id = "{{host.id}}"><span style = " color: gray;   font-size: 25px;" class="glyphicon glyphicon-remove-circle"></span></td>
+	  	{% endif %}
+	  	{% if host.is_port == True %}
+			<td class = "pstatus pmonitored" id = "{{host.id}}"><span style = " color: green;   font-size: 25px;" class="glyphicon glyphicon-ok-circle"></span></td>
+	  	{% else %}
+			<td class = "pstatus" id = "{{host.id}}"><span style = " color: gray;   font-size: 25px;" class="glyphicon glyphicon-remove-circle"></span></td>
+	  	{% endif %}
+	  	<td>
+			<div class="dropdown">
+			  <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" >Settings
+			  <span class="caret"></span></button>
+			  <ul class="dropdown-menu">
+			    <li><a href="{% url 'views:view_host_settings' host.id %}">Connection</a></li>
+			    <li><a href="{% url 'views:stat_list_ping' host.id %}">Ping Report</a></li>
+                <li><a href="{% url 'views:stat_list_port' host.id %}">Port Report</a></li> 
+                <li><a href="#" onClick="deleteHost({{host.id}})" style="color: red">Delete</a></li> 
+			  </ul>
+			</div>
+	  	</td>
+	</tr>				
+	{% empty %}
+	<tr>
+		<td class="bg-light text-center font-italic" colspan="5">You do not have any hosts yet.</td>
+	</tr>
+	{% endfor %}
+  </tbody>
+</table>
+  {% block javascript %}
+<script type="text/javascript">
+
+var statusesArray = [];
+
+$('.hosts').each( function(i,e) {
+    statusesArray.push($(e).attr('id'));
+});
+
+var portmonitoredArray = [];
+$('.pmonitored').each( function(i,e) {
+    portmonitoredArray.push($(e).attr('id'));
+});
+
+
+    function checkStatuses() {
+        $.ajax({
+            url: '{% url "views:status_update" %}',
+            data:{"ids" : JSON.stringify(statusesArray)},
+            dataType: 'json',
+            success: function (data) {
+              $('.hosts').each( function(i,e) {
+    				id_e = $(e).attr('id');
+    				if (data['status'][id_e] != undefined ){
+    					if(data['status'][id_e] == 1){
+    						$("#"+id_e+".status").html("<span style = ' color: green;   font-size: 25px;' class='glyphicon glyphicon-ok-circle'></span>");
+    					}
+    					else{
+    						$("#"+id_e+".status").html('<span style = " color: red;   font-size: 25px;" class="glyphicon glyphicon-remove-circle"></span>');   					
+    					}
+    				}
+    				
+				});
+
+            }
+        });
+    }
+
+    function getMonitoredPorts() {
+        $.ajax({
+            url: '{% url "views:get_monitored_ports" %}',
+            data:{"ids" : JSON.stringify(portmonitoredArray)},
+            dataType: 'json',
+            success: function (data) {
+              $('.hosts').each( function(i,e) {
+    				let id_e = $(e).attr('id');
+    				if (data['status'][id_e]){
+    					$("#"+id_e+".pstatus").attr('count', data['status'][id_e]['count']) ;
+    				}	
+				});
+
+            }
+        });
+    }
+
+    function changePortStatuses() {
+        $.ajax({
+            url: '{% url "views:get_down_ports" %}',
+            data:{"ids" : JSON.stringify(portmonitoredArray)},
+            dataType: 'json',
+            success: function (data) {
+              $('.hosts').each( function(i,e) {
+    				let id_e = $(e).attr('id');
+    				if (data['status'][id_e]){
+    					let all_ports = $("#"+id_e+".pstatus").attr('count')
+    					all_ports = parseInt(all_ports)
+    					let diff = all_ports - parseInt(data['status'][id_e]['count'])
+    					if (diff > 0 && diff != all_ports){
+    						$("#"+id_e+".pstatus").html("<span style = ' color: rgb(255, 219, 38);   font-size: 25px;' class='glyphicon glyphicon-ok-circle'></span>");
+
+    						$("#"+id_e+".pstatus").attr('title', "DOWN: " + data['status'][id_e]['ports']) ;
+    					}
+    					else{
+    						if (diff == 0){
+    							$("#"+id_e+".pstatus").html("<span style = ' color: red;   font-size: 25px;' class='glyphicon glyphicon-remove-circle'></span>");
+    							$("#"+id_e+".pstatus").attr('title', "DOWN: " + data['status'][id_e]['ports']) ;
+    						}
+    						else{
+    							$("#"+id_e+".pstatus").html("<span style = ' color: green;   font-size: 25px;' class='glyphicon glyphicon-ok-circle'></span>");
+    						}
+    					}
+    					
+    					$("#"+id_e+".pstatus").attr('count', data['status'][id_e]['count']) ;
+    				}	
+				});
+
+            }
+        });
+    }
+
+    getMonitoredPorts()
+
+    changePortStatuses()
+    
+    let is_someone_monitored = $('.monitored')
+
+    if(is_someone_monitored.length != 0){
+	    checkStatuses()
+		window.setInterval(function(){
+		  checkStatuses()
+		}, 5000);
+	}
+
+
+    function checkExp() {
+    	var is_m_array = [];
+
+		$('.monitored').each( function(i,e) {
+		    is_m_array.push($(e).attr('id'));
+		});
+		console.log(is_m_array)
+        $.ajax({
+            url: '{% url "views:check_if_expired" %}',
+            data:{"ids" : JSON.stringify(is_m_array)},
+            dataType: 'json',
+            success: function (data) {
+                location.reload()
+            }
+        });
+    }
+
+    function deleteHost(id) {
+        var action = confirm("Are you sure you want to DELETE this host?");
+        if (action != false) {
+            $.ajax({
+                    url: '{% url "views:delete_host" %}',
+                    data: {
+                            'id': id,
+                    },
+                    dataType: 'json',
+                    success: function (data) {
+                        location.reload()
+                    }
+            });
+        }
+    }
+
+
+</script>
+{% endblock javascript %}
+ {% endblock %}
